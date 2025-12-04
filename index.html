@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 JERCAT Wallet - Complet + Auto-Connect + Send</title>
+    <title>🔐 JERCAT Wallet - FIXED ADDRESS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -419,12 +419,25 @@
             width: auto;
             min-width: 120px;
         }
+
+        .address-display {
+            background: #0f172a;
+            border: 2px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            color: #10b981;
+            word-break: break-all;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🤖 JERCAT Wallet COMPLET</h1>
-        <p class="subtitle">✅ Secure Multi-Page + Auto-Connect + Send Crypto</p>
+        <h1>🤖 JERCAT Wallet - FIXED</h1>
+        <p class="subtitle">✅ Correction Adresse Destination</p>
 
         <!-- Écran de connexion -->
         <div id="loginScreen">
@@ -505,16 +518,30 @@
             <div id="page-send" class="page">
                 <div class="section">
                     <h2>📤 Envoyer BNB / Token</h2>
-                    <input type="text" id="sendToAddress" placeholder="Adresse de destination (0x...)">
+                    
+                    <div class="warning">
+                        ⚠️ <strong>VÉRIFICATION STRICTE ACTIVÉE</strong><br>
+                        L'adresse de destination sera vérifiée avant chaque envoi !
+                    </div>
+
+                    <label style="color: #94a3b8; font-size: 12px; margin-bottom: 5px; display: block; font-weight: 600;">
+                        📍 Adresse de destination (vérifiez bien !)
+                    </label>
+                    <input type="text" id="sendToAddress" placeholder="0x..." style="font-family: monospace;">
+                    
+                    <!-- Affichage de vérification -->
+                    <div id="addressVerification" class="hidden"></div>
+
                     <div class="flex-row">
                         <input type="number" id="sendAmount" placeholder="Montant" step="0.000001">
-                        <select id="sendTokenType">
+                        <select id="sendTokenType" onchange="updateSendBalance()">
                             <option value="BNB">BNB</option>
                         </select>
                     </div>
                     <div style="margin-bottom: 15px; font-size: 12px; color: #64748b;" id="sendBalance">Balance disponible: 0.0</div>
-                    <button onclick="sendCrypto()" class="purple">
-                        📤 Envoyer Crypto
+                    
+                    <button onclick="verifySendCrypto()" class="purple">
+                        🔍 Vérifier et Envoyer
                     </button>
                     <div id="sendMessage"></div>
                 </div>
@@ -1018,8 +1045,8 @@
             await loadTokenBalances();
         }
 
-        // === FONCTION ENVOI DE CRYPTO (BNB ou Token) ===
-        async function sendCrypto() {
+        // === FONCTION ENVOI DE CRYPTO AVEC VÉRIFICATION STRICTE ===
+        function verifySendCrypto() {
             if (!wallet) {
                 document.getElementById('sendMessage').innerHTML = '<div class="error">❌ Wallet non connecté</div>';
                 return;
@@ -1029,46 +1056,97 @@
             const amount = document.getElementById('sendAmount').value;
             const tokenAddress = document.getElementById('sendTokenType').value;
             const messageDiv = document.getElementById('sendMessage');
+            const verificationDiv = document.getElementById('addressVerification');
 
+            // VÉRIFICATIONS CRITIQUES
             if (!toAddress || !ethers.isAddress(toAddress)) {
-                messageDiv.innerHTML = '<div class="error">❌ Adresse invalide</div>';
+                messageDiv.innerHTML = '<div class="error">❌ Adresse invalide ou vide</div>';
+                verificationDiv.classList.add('hidden');
                 return;
             }
             if (!amount || parseFloat(amount) <= 0) {
                 messageDiv.innerHTML = '<div class="error">❌ Montant invalide</div>';
+                verificationDiv.classList.add('hidden');
                 return;
             }
 
+            // AFFICHER L'ADRESSE EN FORMAT LISIBLE
+            verificationDiv.innerHTML = `
+                <div class="address-display">
+                    <div style="font-size: 12px; margin-bottom: 8px; color: #94a3b8;">📍 Adresse de destination :</div>
+                    <div style="font-size: 16px; margin-bottom: 15px;">${toAddress}</div>
+                    <div style="font-size: 12px; color: #94a3b8;">Vérifiez bien cette adresse avant de confirmer !</div>
+                </div>
+            `;
+            verificationDiv.classList.remove('hidden');
+
+            // DEMANDER CONFIRMATION avec l'adresse complète
+            const tokenSymbol = tokenAddress === 'BNB' ? 'BNB' : (securityConfig.knownTokens.find(t => t.address === tokenAddress)?.symbol || 'Token');
+            
+            const confirmMsg = 
+                `⚠️ CONFIRMER L'ENVOI\n\n` +
+                `💰 Montant: ${amount} ${tokenSymbol}\n\n` +
+                `📍 Adresse de destination:\n${toAddress}\n\n` +
+                `❓ Êtes-vous SÛR de cette adresse ?`;
+            
+            if (!confirm(confirmMsg)) {
+                messageDiv.innerHTML = '<div class="warning">❌ Envoi annulé par l\'utilisateur</div>';
+                return;
+            }
+
+            // Si OK, procéder à l'envoi
+            executeSendCrypto(toAddress, amount, tokenAddress, tokenSymbol);
+        }
+
+        async function executeSendCrypto(toAddress, amount, tokenAddress, tokenSymbol) {
+            const messageDiv = document.getElementById('sendMessage');
             messageDiv.innerHTML = '<div class="warning">⏳ Transaction en cours...</div>';
 
             try {
                 let tx;
-                let symbol = 'BNB';
+
+                console.log('🚀 ENVOI CRYPTO:');
+                console.log('📍 Destination VÉRIFIÉE:', toAddress);
+                console.log('💰 Montant:', amount);
+                console.log('🪙 Token:', tokenAddress);
 
                 if (tokenAddress === "BNB") {
                     // Envoi BNB natif
                     const value = ethers.parseEther(amount);
+                    
+                    console.log('📤 Création transaction BNB...');
+                    console.log('   to:', toAddress);
+                    console.log('   value:', value.toString());
+
                     tx = await wallet.sendTransaction({
-                        to: toAddress,
+                        to: toAddress,  // ← Utilisation DIRECTE de toAddress vérifié
                         value: value
                     });
+                    
+                    console.log('✅ TX BNB envoyée:', tx.hash);
+                    console.log('   Destination dans TX:', tx.to);
                 } else {
                     // Envoi Token ERC20
                     const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, wallet);
                     const decimals = await tokenContract.decimals();
                     const amountWei = ethers.parseUnits(amount, decimals);
 
+                    console.log('📤 Envoi token:', tokenAddress);
+                    console.log('   Vers:', toAddress);
+                    console.log('   Montant Wei:', amountWei.toString());
+
+                    // APPEL DIRECT avec toAddress vérifié
                     tx = await tokenContract.transfer(toAddress, amountWei);
 
-                    const tokenInfo = securityConfig.knownTokens.find(t => t.address === tokenAddress);
-                    symbol = tokenInfo ? tokenInfo.symbol : 'Token';
+                    console.log('✅ TX Token envoyée:', tx.hash);
                 }
 
                 messageDiv.innerHTML = `<div class="warning">
                     ⏳ Envoi en cours...<br>
                     Hash: <a href="https://bscscan.com/tx/${tx.hash}" target="_blank" style="color:#60a5fa;">
                         ${tx.hash.substring(0, 16)}...
-                    </a>
+                    </a><br>
+                    <small>Destination: ${toAddress.substring(0, 15)}...</small>
                 </div>`;
 
                 await tx.wait();
@@ -1078,7 +1156,7 @@
                     time: new Date().toLocaleString(),
                     to: toAddress,
                     amount: amount,
-                    symbol: symbol,
+                    symbol: tokenSymbol,
                     hash: tx.hash,
                     status: 'success'
                 });
@@ -1090,22 +1168,28 @@
                 saveConfig();
                 updateSendHistoryDisplay();
 
-                messageDiv.innerHTML = '<div class="success-msg">✅ Transaction confirmée !</div>';
+                messageDiv.innerHTML = `<div class="success-msg">
+                    ✅ Transaction confirmée !<br>
+                    📍 Envoyé à: ${toAddress.substring(0, 15)}...<br>
+                    💰 Montant: ${amount} ${tokenSymbol}
+                </div>`;
 
                 // Notification Telegram
                 if (TELEGRAM_BOT_TOKEN && securityConfig.telegramChatId) {
-                    sendTelegramMessage(`📤 <b>Envoi effectué</b>\n\n✅ ${amount} ${symbol}\n📍 Vers: ${toAddress.substring(0,10)}...\n🔗 ${tx.hash.substring(0,20)}...`);
+                    sendTelegramMessage(`📤 <b>Envoi effectué</b>\n\n✅ ${amount} ${tokenSymbol}\n📍 Vers: ${toAddress.substring(0,15)}...\n🔗 ${tx.hash.substring(0,20)}...`);
                 }
 
                 // Reset + refresh
                 document.getElementById('sendToAddress').value = '';
                 document.getElementById('sendAmount').value = '';
+                document.getElementById('addressVerification').classList.add('hidden');
+                
                 await refreshBalance();
                 await loadTokenBalances();
                 await updateSendBalance();
 
             } catch (error) {
-                console.error(error);
+                console.error('❌ ERREUR ENVOI:', error);
                 const errMsg = error.reason || error.message || "Transaction rejetée";
                 messageDiv.innerHTML = `<div class="error">❌ Échec : ${errMsg}</div>`;
             }
@@ -1158,14 +1242,6 @@
                 balanceDiv.textContent = 'Balance: Erreur';
             }
         }
-
-        // Écouter les changements de token dans Send
-        document.addEventListener('DOMContentLoaded', function() {
-            const sendTokenSelect = document.getElementById('sendTokenType');
-            if (sendTokenSelect) {
-                sendTokenSelect.addEventListener('change', updateSendBalance);
-            }
-        });
 
         function updateSendHistoryDisplay() {
             const div = document.getElementById('sendHistory');
