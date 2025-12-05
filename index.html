@@ -1847,11 +1847,51 @@
             });
         }
 
+      // DÉTECTION CONNEXION DEPUIS TRADING BOT
+        function detectBotConnection() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const connectMode = urlParams.get('connect');
+            const origin = urlParams.get('origin');
+            
+            if (connectMode === 'true' && window.opener) {
+                console.log('🤖 Ouvert depuis Trading Bot');
+                const checkWallet = setInterval(() => {
+                    if (wallet && wallet.address) {
+                        clearInterval(checkWallet);
+                        sendConnectionToBot(origin);
+                    }
+                }, 500);
+            }
+        }
+
+        function sendConnectionToBot(origin) {
+            if (!wallet || !wallet.address) return;
+            
+            console.log('📤 Envoi connexion au bot...');
+            const messageData = {
+                type: 'JERCAT_CONNECTED',
+                address: wallet.address,
+                chainId: 56,
+                timestamp: Date.now()
+            };
+            
+            try {
+                if (window.opener) {
+                    window.opener.postMessage(messageData, origin || '*');
+                    console.log('✅ Connexion envoyée !');
+                    alert('✅ Connecté au Trading Bot!\n\n📍 ' + wallet.address.substring(0, 20) + '...');
+                }
+            } catch (error) {
+                console.error('❌ Erreur:', error);
+            }
+        }
+
         window.onload = function() {
             const hasWallet = localStorage.getItem('encryptedWallet');
             if (!hasWallet) {
                 showCreateScreen();
             }
+            detectBotConnection();
         };
     </script>
 </body>
